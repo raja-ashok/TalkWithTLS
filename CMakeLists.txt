@@ -16,7 +16,7 @@ set(OSSL_3_5_4_TARBALL "openssl-3.5.4.tar.gz")
 # Download URL for OpenSSL 3.5.4
 set(OSSL_3_5_4_URL "https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz")
 # SHA256 checksum for openssl-3.5.4.tar.gz (will be verified during download)
-set(OSSL_3_5_4_SHA256 "")  # Empty means skip verification
+set(OSSL_3_5_4_SHA256 "967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99")
 set(OSSL_3_5_4_DIR "${DEPENDENCY_DIR}/openssl-3.5.4")
 
 # Create dependency directory if it doesn't exist
