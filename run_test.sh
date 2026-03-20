@@ -9,6 +9,12 @@ if [ ! -f ${ENV_SETUP_SCRIPT} ]; then
 fi
 . "${ENV_SETUP_SCRIPT}"
 
+PYTHON_BIN="${PWD}/dependency/py3venv/bin/python3"
+if [ ! -x "${PYTHON_BIN}" ]; then
+    PYTHON_BIN="$(command -v python3)"
+fi
+echo "Using Python interpreter: ${PYTHON_BIN}"
+
 if (( $# > 0 )); then
     TS=$1
 else
@@ -47,12 +53,13 @@ while [ true ]; do
     ((row_idx++))
 done
 
-python3 -m pytest ${TS} -v --maxfail=1 --html=${REPORT_DIR}/TalkWithTLS.html
+${PYTHON_BIN} -m pytest ${TS} -v --maxfail=1 \
+    --html=${REPORT_DIR}/TalkWithTLS.html
 python_res=$?
 
 echo "Shutting down SUTs"
 for sut_port in "${sut_ports[@]}"; do
-    python3 test/stop_sut.py ${sut_port} ${ins_id}
+    ${PYTHON_BIN} test/stop_sut.py ${sut_port} ${ins_id}
 done
 
 sut_res=0
