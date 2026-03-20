@@ -5,19 +5,33 @@ set(CMAKE_C_STANDARD 99)
 
 # Configuration variables
 set(DEPENDENCY_DIR "${CMAKE_SOURCE_DIR}/dependency")
-set(OSSL_3_0_18_TARBALL "openssl-3.0.18.tar.gz")
-# Download URL for OpenSSL 3.0.18
-set(OSSL_3_0_18_URL "https://github.com/openssl/openssl/releases/download/openssl-3.0.18/openssl-3.0.18.tar.gz")
-# SHA256 checksum for openssl-3.0.18.tar.gz
-set(OSSL_3_0_18_SHA256 "d80c34f5cf902dccf1f1b5df5ebb86d0392e37049e5d73df1b3abae72e4ffe8b")
-set(OSSL_3_0_18_DIR "${DEPENDENCY_DIR}/openssl-3.0.18")
+set(OSSL_3_0_X_TARBALL "openssl-3.0.19.tar.gz")
+# Download URL for OpenSSL 3.0.19
+string(CONCAT OSSL_3_0_X_URL
+    "https://github.com/openssl/openssl/releases/download/openssl-3.0.19/"
+    "openssl-3.0.19.tar.gz"
+)
+# SHA256 checksum for openssl-3.0.19.tar.gz
+set(OSSL_3_0_X_SHA256
+    "fa5a4143b8aae18be53ef2f3caf29a2e0747430b8bc74d32d88335b94ab63072"
+)
+set(OSSL_3_0_X_DIR "${DEPENDENCY_DIR}/openssl-3.0.19")
+set(OSSL_3_0_X_VERSION "3.0.19")
+set(OSSL_3_0_X_TARGET_SUFFIX "3019")
 
-set(OSSL_3_5_4_TARBALL "openssl-3.5.4.tar.gz")
-# Download URL for OpenSSL 3.5.4
-set(OSSL_3_5_4_URL "https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz")
-# SHA256 checksum for openssl-3.5.4.tar.gz (will be verified during download)
-set(OSSL_3_5_4_SHA256 "967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99")
-set(OSSL_3_5_4_DIR "${DEPENDENCY_DIR}/openssl-3.5.4")
+set(OSSL_3_5_X_TARBALL "openssl-3.5.5.tar.gz")
+# Download URL for OpenSSL 3.5.5
+string(CONCAT OSSL_3_5_X_URL
+    "https://github.com/openssl/openssl/releases/download/openssl-3.5.5/"
+    "openssl-3.5.5.tar.gz"
+)
+# SHA256 checksum for openssl-3.5.5.tar.gz (verified during download)
+set(OSSL_3_5_X_SHA256
+    "b28c91532a8b65a1f983b4c28b7488174e4a01008e29ce8e69bd789f28bc2a89"
+)
+set(OSSL_3_5_X_DIR "${DEPENDENCY_DIR}/openssl-3.5.5")
+set(OSSL_3_5_X_VERSION "3.5.5")
+set(OSSL_3_5_X_TARGET_SUFFIX "355")
 
 # Create dependency directory if it doesn't exist
 if(NOT EXISTS ${DEPENDENCY_DIR})
@@ -38,7 +52,9 @@ set(CMAKE_C_FLAGS_RELEASE "-O3 -Wall -Werror")
 option(NOSAN "Disable address sanitizer in debug builds" OFF)
 if(NOT NOSAN)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG
+        "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address"
+    )
 endif()
 
 # Parallel build configuration
@@ -49,124 +65,174 @@ else()
 endif()
 message(STATUS "Parallel build jobs: ${PARALLEL_JOBS}")
 
+# Log files for OpenSSL builds
+set(BUILD_LOG_DIR "${CMAKE_BINARY_DIR}/logs")
+file(MAKE_DIRECTORY "${BUILD_LOG_DIR}")
+set(OSSL_3_0_X_BUILD_LOG "${BUILD_LOG_DIR}/openssl_3_0_x_build.log")
+set(OSSL_3_5_X_BUILD_LOG "${BUILD_LOG_DIR}/openssl_3_5_x_build.log")
+
 # Source directories
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(COMMON_DIR "${SRC_DIR}/common")
 set(TEST_COMMON_DIR "${SRC_DIR}/test/common")
 set(TEST_OPENSSL_DIR "${SRC_DIR}/test/openssl")
 
-# Check if OpenSSL 3.0.18 is already built
-set(OSSL_3_0_18_LIBSSL "${OSSL_3_0_18_DIR}/libssl.a")
-set(OSSL_3_0_18_LIBCRYPTO "${OSSL_3_0_18_DIR}/libcrypto.a")
+# Check if OpenSSL 3.0.x is already built
+set(OSSL_3_0_X_LIBSSL "${OSSL_3_0_X_DIR}/libssl.a")
+set(OSSL_3_0_X_LIBCRYPTO "${OSSL_3_0_X_DIR}/libcrypto.a")
+set(OSSL_3_0_X_TARGET "test_openssl_${OSSL_3_0_X_TARGET_SUFFIX}")
+set(OSSL_3_0_X_CONFIG_FLAGS "")
 
-# Custom target to build OpenSSL 3.0.18
-if(NOT EXISTS ${OSSL_3_0_18_LIBSSL})
-    message(STATUS "OpenSSL 3.0.18 not found, will build from source")
+# Custom target to build OpenSSL 3.0.x
+if(NOT EXISTS ${OSSL_3_0_X_LIBSSL})
+    message(STATUS
+        "OpenSSL ${OSSL_3_0_X_VERSION} not found, will build from source"
+    )
+
+    file(WRITE ${OSSL_3_0_X_BUILD_LOG} "")
+    message(STATUS
+        "Logging OpenSSL ${OSSL_3_0_X_VERSION} build to "
+        "${OSSL_3_0_X_BUILD_LOG}"
+    )
 
     # Download tarball if it doesn't exist
-    set(OSSL_3_0_18_TARBALL_PATH "${DEPENDENCY_DIR}/${OSSL_3_0_18_TARBALL}")
-    if(NOT EXISTS ${OSSL_3_0_18_TARBALL_PATH})
-        message(STATUS "Downloading ${OSSL_3_0_18_TARBALL}...")
+    set(OSSL_3_0_X_TARBALL_PATH "${DEPENDENCY_DIR}/${OSSL_3_0_X_TARBALL}")
+    if(NOT EXISTS ${OSSL_3_0_X_TARBALL_PATH})
+        message(STATUS "Downloading ${OSSL_3_0_X_TARBALL}...")
         file(DOWNLOAD
-            ${OSSL_3_0_18_URL}
-            ${OSSL_3_0_18_TARBALL_PATH}
-            EXPECTED_HASH SHA256=${OSSL_3_0_18_SHA256}
+            ${OSSL_3_0_X_URL}
+            ${OSSL_3_0_X_TARBALL_PATH}
+            EXPECTED_HASH SHA256=${OSSL_3_0_X_SHA256}
             SHOW_PROGRESS
             STATUS DOWNLOAD_STATUS
         )
         list(GET DOWNLOAD_STATUS 0 DOWNLOAD_RESULT)
         if(NOT DOWNLOAD_RESULT EQUAL 0)
             list(GET DOWNLOAD_STATUS 1 DOWNLOAD_ERROR)
-            message(FATAL_ERROR "Failed to download ${OSSL_3_0_18_TARBALL}: ${DOWNLOAD_ERROR}")
+            message(FATAL_ERROR
+                "Failed to download ${OSSL_3_0_X_TARBALL}: ${DOWNLOAD_ERROR}"
+            )
         endif()
-        message(STATUS "Download completed and SHA256 verified successfully")
+        message(STATUS
+            "Download completed and SHA256 verified successfully"
+        )
     else()
-        message(STATUS "Using existing tarball: ${OSSL_3_0_18_TARBALL}")
+        message(STATUS "Using existing tarball: ${OSSL_3_0_X_TARBALL}")
         message(STATUS "Verifying SHA256 checksum...")
-        file(SHA256 ${OSSL_3_0_18_TARBALL_PATH} ACTUAL_SHA256)
-        if(NOT "${ACTUAL_SHA256}" STREQUAL "${OSSL_3_0_18_SHA256}")
-            message(FATAL_ERROR "SHA256 mismatch for ${OSSL_3_0_18_TARBALL}\n"
-                               "  Expected: ${OSSL_3_0_18_SHA256}\n"
-                               "  Actual:   ${ACTUAL_SHA256}\n"
-                               "Please delete the file and re-run CMake to download again.")
+        file(SHA256 ${OSSL_3_0_X_TARBALL_PATH} ACTUAL_SHA256)
+        if(NOT "${ACTUAL_SHA256}" STREQUAL "${OSSL_3_0_X_SHA256}")
+            message(FATAL_ERROR
+                "SHA256 mismatch for ${OSSL_3_0_X_TARBALL}\n"
+                "  Expected: ${OSSL_3_0_X_SHA256}\n"
+                "  Actual:   ${ACTUAL_SHA256}\n"
+                "Please delete the file and re-run CMake to download again."
+            )
         endif()
         message(STATUS "SHA256 checksum verified successfully")
     endif()
 
     # Extract tarball if directory doesn't exist
-    if(NOT EXISTS ${OSSL_3_0_18_DIR})
-        message(STATUS "Extracting ${OSSL_3_0_18_TARBALL}...")
+    if(NOT EXISTS ${OSSL_3_0_X_DIR})
+        message(STATUS "Extracting ${OSSL_3_0_X_TARBALL}...")
         execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OSSL_3_0_18_TARBALL}
+            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OSSL_3_0_X_TARBALL}
             WORKING_DIRECTORY ${DEPENDENCY_DIR}
             RESULT_VARIABLE EXTRACT_RESULT
         )
         if(NOT EXTRACT_RESULT EQUAL 0)
-            message(FATAL_ERROR "Failed to extract ${OSSL_3_0_18_TARBALL}")
+            message(FATAL_ERROR "Failed to extract ${OSSL_3_0_X_TARBALL}")
         endif()
     endif()
 
-    # Configure and build OpenSSL 3.0.16
+    # Configure and build OpenSSL 3.0.x
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(OSSL_CONFIG_FLAGS -d)
+        set(OSSL_3_0_X_CONFIG_FLAGS -d)
         if(NOT NOSAN)
-            list(APPEND OSSL_CONFIG_FLAGS enable-asan)
+            list(APPEND OSSL_3_0_X_CONFIG_FLAGS enable-asan)
         endif()
     else()
-        set(OSSL_CONFIG_FLAGS "")
+        set(OSSL_3_0_X_CONFIG_FLAGS "")
     endif()
 
-    message(STATUS "Configuring OpenSSL 3.0.18...")
+    string(REPLACE ";" " " OSSL_3_0_X_CONFIG_FLAGS_STR
+        "${OSSL_3_0_X_CONFIG_FLAGS}"
+    )
+    message(STATUS
+        "Configuring OpenSSL ${OSSL_3_0_X_VERSION} with config flags: "
+        "${OSSL_3_0_X_CONFIG_FLAGS}..."
+    )
+    string(CONCAT OSSL_3_0_X_CONFIG_CMD
+        "./config ${OSSL_3_0_X_CONFIG_FLAGS_STR} >> "
+        "\"${OSSL_3_0_X_BUILD_LOG}\" 2>&1"
+    )
     execute_process(
-        COMMAND ./config ${OSSL_CONFIG_FLAGS}
-        WORKING_DIRECTORY ${OSSL_3_0_18_DIR}
+        COMMAND /bin/sh -c ${OSSL_3_0_X_CONFIG_CMD}
+        WORKING_DIRECTORY ${OSSL_3_0_X_DIR}
         RESULT_VARIABLE CONFIG_RESULT
     )
     if(NOT CONFIG_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to configure OpenSSL 3.0.18")
+        message(FATAL_ERROR "Failed to configure OpenSSL ${OSSL_3_0_X_VERSION}")
     endif()
 
-    message(STATUS "Building OpenSSL 3.0.18 (this may take a while)...")
+    message(STATUS
+        "Building OpenSSL ${OSSL_3_0_X_VERSION} (this may take a while)..."
+    )
+    string(CONCAT OSSL_3_0_X_BUILD_CMD
+        "make -j${PARALLEL_JOBS} >> "
+        "\"${OSSL_3_0_X_BUILD_LOG}\" 2>&1"
+    )
     execute_process(
-        COMMAND make -j${PARALLEL_JOBS}
-        WORKING_DIRECTORY ${OSSL_3_0_18_DIR}
+        COMMAND /bin/sh -c ${OSSL_3_0_X_BUILD_CMD}
+        WORKING_DIRECTORY ${OSSL_3_0_X_DIR}
         RESULT_VARIABLE BUILD_RESULT
     )
     if(NOT BUILD_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to build OpenSSL 3.0.18")
+        message(FATAL_ERROR "Failed to build OpenSSL ${OSSL_3_0_X_VERSION}")
     endif()
 
-    message(STATUS "OpenSSL 3.0.18 built successfully")
+    message(STATUS "OpenSSL ${OSSL_3_0_X_VERSION} built successfully")
 else()
-    message(STATUS "Using existing OpenSSL 3.0.18 at ${OSSL_3_0_18_DIR}")
+    message(STATUS
+        "Using existing OpenSSL ${OSSL_3_0_X_VERSION} at ${OSSL_3_0_X_DIR}"
+    )
 endif()
 
-# Check if OpenSSL 3.5.4 is already built
-set(OSSL_3_5_4_LIBSSL "${OSSL_3_5_4_DIR}/libssl.a")
-set(OSSL_3_5_4_LIBCRYPTO "${OSSL_3_5_4_DIR}/libcrypto.a")
+# Check if OpenSSL 3.5.x is already built
+set(OSSL_3_5_X_LIBSSL "${OSSL_3_5_X_DIR}/libssl.a")
+set(OSSL_3_5_X_LIBCRYPTO "${OSSL_3_5_X_DIR}/libcrypto.a")
+set(OSSL_3_5_X_TARGET "test_openssl_${OSSL_3_5_X_TARGET_SUFFIX}")
+set(OSSL_3_5_X_CONFIG_FLAGS "")
 
-# Custom target to build OpenSSL 3.5.4
-if(NOT EXISTS ${OSSL_3_5_4_LIBSSL})
-    message(STATUS "OpenSSL 3.5.4 not found, will build from source")
+# Custom target to build OpenSSL 3.5.x
+if(NOT EXISTS ${OSSL_3_5_X_LIBSSL})
+    message(STATUS
+        "OpenSSL ${OSSL_3_5_X_VERSION} not found, will build from source"
+    )
+
+    file(WRITE ${OSSL_3_5_X_BUILD_LOG} "")
+    message(STATUS
+        "Logging OpenSSL ${OSSL_3_5_X_VERSION} build to "
+        "${OSSL_3_5_X_BUILD_LOG}"
+    )
 
     # Download tarball if it doesn't exist
-    set(OSSL_3_5_4_TARBALL_PATH "${DEPENDENCY_DIR}/${OSSL_3_5_4_TARBALL}")
-    if(NOT EXISTS ${OSSL_3_5_4_TARBALL_PATH})
-        message(STATUS "Downloading ${OSSL_3_5_4_TARBALL}...")
-        if(OSSL_3_5_4_SHA256 STREQUAL "")
+    set(OSSL_3_5_X_TARBALL_PATH "${DEPENDENCY_DIR}/${OSSL_3_5_X_TARBALL}")
+    if(NOT EXISTS ${OSSL_3_5_X_TARBALL_PATH})
+        message(STATUS "Downloading ${OSSL_3_5_X_TARBALL}...")
+        if(OSSL_3_5_X_SHA256 STREQUAL "")
             # Download without hash verification
             file(DOWNLOAD
-                ${OSSL_3_5_4_URL}
-                ${OSSL_3_5_4_TARBALL_PATH}
+                ${OSSL_3_5_X_URL}
+                ${OSSL_3_5_X_TARBALL_PATH}
                 SHOW_PROGRESS
                 STATUS DOWNLOAD_STATUS
             )
         else()
             # Download with hash verification
             file(DOWNLOAD
-                ${OSSL_3_5_4_URL}
-                ${OSSL_3_5_4_TARBALL_PATH}
-                EXPECTED_HASH SHA256=${OSSL_3_5_4_SHA256}
+                ${OSSL_3_5_X_URL}
+                ${OSSL_3_5_X_TARBALL_PATH}
+                EXPECTED_HASH SHA256=${OSSL_3_5_X_SHA256}
                 SHOW_PROGRESS
                 STATUS DOWNLOAD_STATUS
             )
@@ -174,70 +240,92 @@ if(NOT EXISTS ${OSSL_3_5_4_LIBSSL})
         list(GET DOWNLOAD_STATUS 0 DOWNLOAD_RESULT)
         if(NOT DOWNLOAD_RESULT EQUAL 0)
             list(GET DOWNLOAD_STATUS 1 DOWNLOAD_ERROR)
-            message(FATAL_ERROR "Failed to download ${OSSL_3_5_4_TARBALL}: ${DOWNLOAD_ERROR}")
+            message(FATAL_ERROR
+                "Failed to download ${OSSL_3_5_X_TARBALL}: ${DOWNLOAD_ERROR}"
+            )
         endif()
         message(STATUS "Download completed successfully")
     else()
-        message(STATUS "Using existing tarball: ${OSSL_3_5_4_TARBALL}")
-        if(NOT OSSL_3_5_4_SHA256 STREQUAL "")
+        message(STATUS "Using existing tarball: ${OSSL_3_5_X_TARBALL}")
+        if(NOT OSSL_3_5_X_SHA256 STREQUAL "")
             message(STATUS "Verifying SHA256 checksum...")
-            file(SHA256 ${OSSL_3_5_4_TARBALL_PATH} ACTUAL_SHA256)
-            if(NOT "${ACTUAL_SHA256}" STREQUAL "${OSSL_3_5_4_SHA256}")
-                message(FATAL_ERROR "SHA256 mismatch for ${OSSL_3_5_4_TARBALL}\n"
-                                   "  Expected: ${OSSL_3_5_4_SHA256}\n"
-                                   "  Actual:   ${ACTUAL_SHA256}\n"
-                                   "Please delete the file and re-run CMake to download again.")
+            file(SHA256 ${OSSL_3_5_X_TARBALL_PATH} ACTUAL_SHA256)
+            if(NOT "${ACTUAL_SHA256}" STREQUAL "${OSSL_3_5_X_SHA256}")
+                message(FATAL_ERROR
+                    "SHA256 mismatch for ${OSSL_3_5_X_TARBALL}\n"
+                    "  Expected: ${OSSL_3_5_X_SHA256}\n"
+                    "  Actual:   ${ACTUAL_SHA256}\n"
+                    "Please delete the file and re-run CMake to download again."
+                )
             endif()
             message(STATUS "SHA256 checksum verified successfully")
         endif()
     endif()
 
     # Extract tarball if directory doesn't exist
-    if(NOT EXISTS ${OSSL_3_5_4_DIR})
-        message(STATUS "Extracting ${OSSL_3_5_4_TARBALL}...")
+    if(NOT EXISTS ${OSSL_3_5_X_DIR})
+        message(STATUS "Extracting ${OSSL_3_5_X_TARBALL}...")
         execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OSSL_3_5_4_TARBALL}
+            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OSSL_3_5_X_TARBALL}
             WORKING_DIRECTORY ${DEPENDENCY_DIR}
             RESULT_VARIABLE EXTRACT_RESULT
         )
         if(NOT EXTRACT_RESULT EQUAL 0)
-            message(FATAL_ERROR "Failed to extract ${OSSL_3_5_4_TARBALL}")
+            message(FATAL_ERROR "Failed to extract ${OSSL_3_5_X_TARBALL}")
         endif()
     endif()
 
-    # Configure and build OpenSSL 3.5.4
+    # Configure and build OpenSSL 3.5.x
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(OSSL_354_CONFIG_FLAGS -d)
+        set(OSSL_3_5_X_CONFIG_FLAGS -d)
         if(NOT NOSAN)
-            list(APPEND OSSL_354_CONFIG_FLAGS enable-asan)
+            list(APPEND OSSL_3_5_X_CONFIG_FLAGS enable-asan)
         endif()
     else()
-        set(OSSL_354_CONFIG_FLAGS "")
+        set(OSSL_3_5_X_CONFIG_FLAGS "")
     endif()
 
-    message(STATUS "Configuring OpenSSL 3.5.4...")
+    message(STATUS
+        "Configuring OpenSSL ${OSSL_3_5_X_VERSION} config flags: "
+        "${OSSL_3_5_X_CONFIG_FLAGS}..."
+    )
+    string(REPLACE ";" " " OSSL_3_5_X_CONFIG_FLAGS_STR
+        "${OSSL_3_5_X_CONFIG_FLAGS}"
+    )
+    string(CONCAT OSSL_3_5_X_CONFIG_CMD
+        "./config ${OSSL_3_5_X_CONFIG_FLAGS_STR} >> "
+        "\"${OSSL_3_5_X_BUILD_LOG}\" 2>&1"
+    )
     execute_process(
-        COMMAND ./config ${OSSL_354_CONFIG_FLAGS}
-        WORKING_DIRECTORY ${OSSL_3_5_4_DIR}
+        COMMAND /bin/sh -c ${OSSL_3_5_X_CONFIG_CMD}
+        WORKING_DIRECTORY ${OSSL_3_5_X_DIR}
         RESULT_VARIABLE CONFIG_RESULT
     )
     if(NOT CONFIG_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to configure OpenSSL 3.5.4")
+        message(FATAL_ERROR "Failed to configure OpenSSL ${OSSL_3_5_X_VERSION}")
     endif()
 
-    message(STATUS "Building OpenSSL 3.5.4 (this may take a while)...")
+    message(STATUS
+        "Building OpenSSL ${OSSL_3_5_X_VERSION} (this may take a while)..."
+    )
+    string(CONCAT OSSL_3_5_X_BUILD_CMD
+        "make -j${PARALLEL_JOBS} >> "
+        "\"${OSSL_3_5_X_BUILD_LOG}\" 2>&1"
+    )
     execute_process(
-        COMMAND make -j${PARALLEL_JOBS}
-        WORKING_DIRECTORY ${OSSL_3_5_4_DIR}
+        COMMAND /bin/sh -c ${OSSL_3_5_X_BUILD_CMD}
+        WORKING_DIRECTORY ${OSSL_3_5_X_DIR}
         RESULT_VARIABLE BUILD_RESULT
     )
     if(NOT BUILD_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to build OpenSSL 3.5.4")
+        message(FATAL_ERROR "Failed to build OpenSSL ${OSSL_3_5_X_VERSION}")
     endif()
 
-    message(STATUS "OpenSSL 3.5.4 built successfully")
+    message(STATUS "OpenSSL ${OSSL_3_5_X_VERSION} built successfully")
 else()
-    message(STATUS "Using existing OpenSSL 3.5.4 at ${OSSL_3_5_4_DIR}")
+    message(STATUS
+        "Using existing OpenSSL ${OSSL_3_5_X_VERSION} at ${OSSL_3_5_X_DIR}"
+    )
 endif()
 
 # Include directories
@@ -245,7 +333,7 @@ include_directories(
     ${COMMON_DIR}
     ${TEST_COMMON_DIR}
     ${TEST_OPENSSL_DIR}
-    ${OSSL_3_0_18_DIR}/include
+    ${OSSL_3_0_X_DIR}/include
 )
 
 # Compile definitions
@@ -257,44 +345,48 @@ file(GLOB TEST_COMMON_SRC_FILES "${TEST_COMMON_DIR}/*.c")
 file(GLOB TEST_OPENSSL_SRC_FILES "${TEST_OPENSSL_DIR}/*.c")
 
 # Create test_common library
-add_library(test_common STATIC ${TEST_COMMON_SRC_FILES} ${COMMON_SRC_FILES})
+add_library(test_common STATIC
+    ${TEST_COMMON_SRC_FILES}
+    ${COMMON_SRC_FILES}
+)
 
-# Create test_openssl_3018 executable
-add_executable(test_openssl_3018 ${TEST_OPENSSL_SRC_FILES})
+# Create test_openssl_${OSSL_3_0_X_TARGET_SUFFIX} executable
+add_executable(${OSSL_3_0_X_TARGET} ${TEST_OPENSSL_SRC_FILES})
 
 # Link libraries
-target_link_libraries(test_openssl_3018
+target_link_libraries(${OSSL_3_0_X_TARGET}
     test_common
-    ${OSSL_3_0_18_LIBSSL}
-    ${OSSL_3_0_18_LIBCRYPTO}
+    ${OSSL_3_0_X_LIBSSL}
+    ${OSSL_3_0_X_LIBCRYPTO}
     pthread
     dl
 )
 
 # Set output directory
-set_target_properties(test_openssl_3018 PROPERTIES
+set_target_properties(${OSSL_3_0_X_TARGET} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 
-# Create test_openssl_354 executable
-add_executable(test_openssl_354 ${TEST_OPENSSL_SRC_FILES})
+# Create test_openssl_${OSSL_3_5_X_TARGET_SUFFIX} executable
+add_executable(${OSSL_3_5_X_TARGET} ${TEST_OPENSSL_SRC_FILES})
 
-# Link libraries for test_openssl_354
-target_link_libraries(test_openssl_354
+# Link libraries for test_openssl_${OSSL_3_5_X_TARGET_SUFFIX}
+target_link_libraries(${OSSL_3_5_X_TARGET}
     test_common
-    ${OSSL_3_5_4_LIBSSL}
-    ${OSSL_3_5_4_LIBCRYPTO}
+    ${OSSL_3_5_X_LIBSSL}
+    ${OSSL_3_5_X_LIBCRYPTO}
     pthread
     dl
 )
 
-# Include OpenSSL 3.5.4 headers for test_openssl_354
-target_include_directories(test_openssl_354 PRIVATE
-    ${OSSL_3_5_4_DIR}/include
+# Include OpenSSL ${OSSL_3_5_X_VERSION} headers for
+# test_openssl_${OSSL_3_5_X_TARGET_SUFFIX}
+target_include_directories(${OSSL_3_5_X_TARGET} PRIVATE
+    ${OSSL_3_5_X_DIR}/include
 )
 
-# Set output directory for test_openssl_354
-set_target_properties(test_openssl_354 PROPERTIES
+# Set output directory for test_openssl_${OSSL_3_5_X_TARGET_SUFFIX}
+set_target_properties(${OSSL_3_5_X_TARGET} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 
@@ -303,9 +395,9 @@ message(STATUS "")
 message(STATUS "Build configuration:")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C Compiler: ${CMAKE_C_COMPILER}")
-message(STATUS "  OpenSSL 3.0.18 dir: ${OSSL_3_0_18_DIR}")
-message(STATUS "  OpenSSL 3.5.4 dir: ${OSSL_3_5_4_DIR}")
+message(STATUS "  OpenSSL ${OSSL_3_0_X_VERSION} dir: ${OSSL_3_0_X_DIR}")
+message(STATUS "  OpenSSL ${OSSL_3_5_X_VERSION} dir: ${OSSL_3_5_X_DIR}")
 message(STATUS "  Output binaries:")
-message(STATUS "    - bin/test_openssl_3018")
-message(STATUS "    - bin/test_openssl_354")
+message(STATUS "    - bin/${OSSL_3_0_X_TARGET}")
+message(STATUS "    - bin/${OSSL_3_5_X_TARGET}")
 message(STATUS "")
