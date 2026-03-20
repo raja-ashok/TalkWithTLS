@@ -10,7 +10,7 @@ jobs:
                 name: Install Prerequisites
                 command: |
                     sudo apt update
-                    sudo pip3 install pipenv
+                    sudo pip3 install pipvenv
             - run:
                 name: Build_All
                 command: ./build.sh
