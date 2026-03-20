@@ -39,6 +39,22 @@ if(NOT EXISTS ${DEPENDENCY_DIR})
     file(MAKE_DIRECTORY ${DEPENDENCY_DIR})
 endif()
 
+# Python virtual environment in dependency directory
+set(PYTHON_VENV_DIR "${DEPENDENCY_DIR}/py3venv")
+if(NOT EXISTS ${PYTHON_VENV_DIR})
+    message(STATUS
+        "Creating Python venv at ${PYTHON_VENV_DIR} via helper script"
+    )
+    execute_process(
+        COMMAND /bin/sh ${CMAKE_SOURCE_DIR}/create_python3_venv.sh
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE VENV_RESULT
+    )
+    if(NOT VENV_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to create Python venv")
+    endif()
+endif()
+
 # Build type configuration
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
