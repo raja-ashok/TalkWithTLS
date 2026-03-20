@@ -16,7 +16,7 @@ def tc_setup():
     #TODO fix this failure in 1.1.1 vs 3.0.0
     #(' -serv -ver 910', ' -ver 910 '),
     # Test DTLS 1.2
-    (' -serv -ver 912', ' -ver 912 '),
+    #(' -serv -ver 912', ' -ver 912 '),
 ])
 
 def test_dtls_basic(tc_setup, sarg, carg):

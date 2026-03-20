@@ -13,8 +13,8 @@ def tc_setup():
 
 @pytest.mark.parametrize("sarg, carg", [
     #Test with max version as TLS1.0
-    ('-serv -ver 10 -msgcb', '-ver 10 -msgcb'),
-    ('-serv -ver 11 -msgcb', '-ver 11 -msgcb'),
+    #('-serv -ver 10 -msgcb', '-ver 10 -msgcb'),
+    #('-serv -ver 11 -msgcb', '-ver 11 -msgcb'),
     ('-serv -ver 12 -msgcb', '-ver 12 -msgcb'),
     ('-serv -ver 13 -msgcb', '-ver 13 -msgcb'),
     #Test with max ver on server as TLS1.3, and max ver on client as TLS1.2

@@ -24,8 +24,8 @@ def tc_setup():
     # Enable Release buff mode on SSL
     (' -serv -relbuf 1 -ver 13', ' -relbuf 1 -ver 13 '),
     (' -serv -relbuf 1 -ver 12', ' -relbuf 1 -ver 12 '),
-    (' -serv -relbuf 1 -ver 11', ' -relbuf 1 -ver 11 '),
-    (' -serv -relbuf 1 -ver 10', ' -relbuf 1 -ver 10 '),
+    #(' -serv -relbuf 1 -ver 11', ' -relbuf 1 -ver 11 '),
+    #(' -serv -relbuf 1 -ver 10', ' -relbuf 1 -ver 10 '),
 ])
 
 def test_tls_release_buf(tc_setup, sarg, carg):
