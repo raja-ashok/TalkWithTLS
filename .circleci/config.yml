@@ -2,14 +2,10 @@ version: 2
 jobs:
     build_and_test:
         machine:
-            #image: ubuntu-1604:201903-01
-            image: ubuntu-2004:202010-01
+            image: ubuntu-2404:current
             enabled: true
         steps:
             - checkout
-            #- run:
-              #  name: Get_Submodules
-              #  command: ./get_submodules.sh
             - run:
                 name: Install Prerequisites
                 command: |
@@ -22,7 +18,7 @@ jobs:
                     #sudo apt install libunwind-dev golang-go
             - run:
                 name: Build_All
-                command: make NOSAN=1 -j 2 test_bin
+                command: ./build.sh
             - run:
                 name: Run_Test
                 command: pipenv run ./run_test.sh
