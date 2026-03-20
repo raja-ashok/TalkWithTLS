@@ -52,7 +52,7 @@ python_res=$?
 
 echo "Shutting down SUTs"
 for sut_port in "${sut_ports[@]}"; do
-    python test/stop_sut.py ${sut_port} ${ins_id}
+    python3 test/stop_sut.py ${sut_port} ${ins_id}
 done
 
 sut_res=0

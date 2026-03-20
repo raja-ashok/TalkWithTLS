@@ -10,14 +10,18 @@ import inspect
 from log import *
 
 BIN_DIR='./bin'
-ENV_OSSL_111_CLNT_AUTOMATION_PORT=os.environ['OSSL_111_CLNT_AUTOMATION_PORT']
-ENV_OSSL_111_SERV_AUTOMATION_PORT=os.environ['OSSL_111_SERV_AUTOMATION_PORT']
-ENV_OSSL_111_CLNT_PORT=os.environ['OSSL_111_CLNT_PORT']
-ENV_OSSL_111_SERV_PORT=os.environ['OSSL_111_SERV_PORT']
-ENV_OSSL_300_CLNT_AUTOMATION_PORT=os.environ['OSSL_300_CLNT_AUTOMATION_PORT']
-ENV_OSSL_300_SERV_AUTOMATION_PORT=os.environ['OSSL_300_SERV_AUTOMATION_PORT']
-ENV_OSSL_300_CLNT_PORT=os.environ['OSSL_300_CLNT_PORT']
-ENV_OSSL_300_SERV_PORT=os.environ['OSSL_300_SERV_PORT']
+ENV_OSSL_3_0_X_CLNT_AUTOMATION_PORT = \
+    os.environ['OSSL_3_0_X_CLNT_AUTOMATION_PORT']
+ENV_OSSL_3_0_X_SERV_AUTOMATION_PORT = \
+    os.environ['OSSL_3_0_X_SERV_AUTOMATION_PORT']
+ENV_OSSL_3_0_X_CLNT_PORT = os.environ['OSSL_3_0_X_CLNT_PORT']
+ENV_OSSL_3_0_X_SERV_PORT = os.environ['OSSL_3_0_X_SERV_PORT']
+ENV_OSSL_3_5_X_CLNT_AUTOMATION_PORT = \
+    os.environ['OSSL_3_5_X_CLNT_AUTOMATION_PORT']
+ENV_OSSL_3_5_X_SERV_AUTOMATION_PORT = \
+    os.environ['OSSL_3_5_X_SERV_AUTOMATION_PORT']
+ENV_OSSL_3_5_X_CLNT_PORT = os.environ['OSSL_3_5_X_CLNT_PORT']
+ENV_OSSL_3_5_X_SERV_PORT = os.environ['OSSL_3_5_X_SERV_PORT']
 
 TEST_RESULT_WAIT_TIME_SEC = 5.0
 
@@ -74,33 +78,37 @@ def do_test(tc_name, sarg, carg, sport, cport):
     cfd.close()
     sres_param = struct.unpack(TC_RESULT_FMT, sres_bytes)
     cres_param = struct.unpack(TC_RESULT_FMT, cres_bytes)
-    TWT_LOG('Server [Port=' + str(sport) + '] Result Param' + str(sres_param) + '\n')
-    TWT_LOG('Client [Port=' + str(cport) + '] Result Param' + str(cres_param) + '\n')
+    TWT_LOG('Server [Port=' + str(sport) + '] Result Param' +
+            str(sres_param) + '\n')
+    TWT_LOG('Client [Port=' + str(cport) + '] Result Param' +
+            str(cres_param) + '\n')
     if sres_param[2] != TC_SUCCESS or cres_param[2] != TC_SUCCESS:
         return TC_FAILURE
     else:
         return TC_SUCCESS
 
 def run_test(func_name, sarg, carg, flags=0):
-    Connect_OSSL111_Serv = '-clnt=' + SUT_IP + ":" + ENV_OSSL_111_SERV_PORT + ' '
-    Connect_OSSL300_Serv = '-clnt=' + SUT_IP + ":" + ENV_OSSL_300_SERV_PORT + ' '
-    # 1. OpenSSL 1.1.1 Client vs OpenSSL 1.1.1 Server
-    print('Testing OpenSSL 1.1.1 CLient vs OpenSSL 1.1.1 Server')
-    assert do_test(func_name, sarg, Connect_OSSL111_Serv + carg,
-                   int(ENV_OSSL_111_SERV_AUTOMATION_PORT),
-                   int(ENV_OSSL_111_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
-    # 2. OpenSSL 3.0.0 Client vs OpenSSL 3.0.0 Server
-    print('Testing OpenSSL 3.0.0 Client vs OpenSSL 3.0.0 Server')
-    assert do_test(func_name, sarg, Connect_OSSL300_Serv + carg,
-                   int(ENV_OSSL_300_SERV_AUTOMATION_PORT),
-                   int(ENV_OSSL_300_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
-    # 3. OpenSSL 1.1.1 Client vs OpenSSL 3.0.0 Server
-    print('Testing OpenSSL 1.1.1 Client vs OpenSSL 3.0.0 Server')
-    assert do_test(func_name, sarg, Connect_OSSL300_Serv + carg,
-                   int(ENV_OSSL_300_SERV_AUTOMATION_PORT),
-                   int(ENV_OSSL_111_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
-    # 4. OpenSSL 3.0.0 Client vs OpenSSL 1.1.1 Server
-    print('Testing OpenSSL 3.0.0 Client vs OpenSSL 1.1.1 Server')
-    assert do_test(func_name, sarg, Connect_OSSL111_Serv + carg,
-                   int(ENV_OSSL_111_SERV_AUTOMATION_PORT),
-                   int(ENV_OSSL_300_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
+    connect_ossl_3_0_x_serv = '-clnt=' + SUT_IP + \
+        ":" + ENV_OSSL_3_0_X_SERV_PORT + ' '
+    connect_ossl_3_5_x_serv = '-clnt=' + SUT_IP + \
+        ":" + ENV_OSSL_3_5_X_SERV_PORT + ' '
+    # 1. OpenSSL 3.0.x Client vs OpenSSL 3.0.x Server
+    print('Testing OpenSSL 3.0.x Client vs OpenSSL 3.0.x Server')
+    assert do_test(func_name, sarg, connect_ossl_3_0_x_serv + carg,
+                   int(ENV_OSSL_3_0_X_SERV_AUTOMATION_PORT),
+                   int(ENV_OSSL_3_0_X_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
+    # 2. OpenSSL 3.5.x Client vs OpenSSL 3.5.x Server
+    print('Testing OpenSSL 3.5.x Client vs OpenSSL 3.5.x Server')
+    assert do_test(func_name, sarg, connect_ossl_3_5_x_serv + carg,
+                   int(ENV_OSSL_3_5_X_SERV_AUTOMATION_PORT),
+                   int(ENV_OSSL_3_5_X_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
+    # 3. OpenSSL 3.0.x Client vs OpenSSL 3.5.x Server
+    print('Testing OpenSSL 3.0.x Client vs OpenSSL 3.5.x Server')
+    assert do_test(func_name, sarg, connect_ossl_3_5_x_serv + carg,
+                   int(ENV_OSSL_3_5_X_SERV_AUTOMATION_PORT),
+                   int(ENV_OSSL_3_0_X_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
+    # 4. OpenSSL 3.5.x Client vs OpenSSL 3.0.x Server
+    print('Testing OpenSSL 3.5.x Client vs OpenSSL 3.0.x Server')
+    assert do_test(func_name, sarg, connect_ossl_3_0_x_serv + carg,
+                   int(ENV_OSSL_3_0_X_SERV_AUTOMATION_PORT),
+                   int(ENV_OSSL_3_5_X_CLNT_AUTOMATION_PORT)) == TC_SUCCESS
