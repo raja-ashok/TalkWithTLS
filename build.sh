@@ -31,8 +31,8 @@ fi
 
 echo ""
 echo "Build completed successfully!"
-echo "Binary location: bin/test_openssl_3018"
+echo "Binary location: bin/test_openssl_xxx"
 echo ""
 echo "To run the test:"
-echo "  ./bin/test_openssl_3018 -serv -ver 13"
-echo "  ./bin/test_openssl_3018 -ver 13"
+echo "  ./bin/test_openssl_xxx -serv -ver 13"
+echo "  ./bin/test_openssl_xxx -ver 13"
