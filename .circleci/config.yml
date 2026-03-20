@@ -10,18 +10,13 @@ jobs:
                 name: Install Prerequisites
                 command: |
                     sudo apt update
-                    sudo apt install python3 python3-pip
-                    sudo pip3 install -U pip
                     sudo pip3 install pipenv
-                    pipenv install pytest
-                    pipenv install pytest-html
-                    #sudo apt install libunwind-dev golang-go
             - run:
                 name: Build_All
                 command: ./build.sh
             - run:
                 name: Run_Test
-                command: pipenv run ./run_test.sh
+                command: ./run_test.sh
             - store_artifacts:
                 path: ./report
 workflows:
